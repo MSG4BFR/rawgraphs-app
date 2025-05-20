@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import classNames from 'classnames'
 import S from './SparqlFetch.module.scss'
+import { sparqlExamples } from './SPARQLItems'
 import { html, render } from 'lit-html'
 // Removed: import SimpleClient from 'sparql-http-client/SimpleClient'
 import { Generator } from 'sparqljs'
@@ -37,32 +38,6 @@ const DEFAULT_PREFIXES = {
   bds: 'http://www.bigdata.com/rdf/search#',
   gas: 'http://www.bigdata.com/rdf/gas#',
   hint: 'http://www.bigdata.com/queryHints#',
-}
-
-// Helper function to parse CSV text into an array of objects
-function parseCsvTextToObjects(csvText) {
-  if (!csvText || typeof csvText !== 'string') {
-    return []
-  }
-  const lines = csvText.trim().split(/\r?\n/); // Handles both \n and \r\n
-  if (lines.length === 0) {
-    return []
-  }
-
-  const headers = lines[0].split(',').map(header => header.trim().replace(/^"|"$/g, '')); // Remove surrounding quotes if any
-  const rows = []
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(value => value.trim().replace(/^"|"$/g, '')); // Remove surrounding quotes
-    if (values.length === headers.length) {
-      const row = {}
-      headers.forEach((header, index) => {
-        row[header] = values[index]
-      })
-      rows.push(row)
-    }
-  }
-  return rows
 }
 
 // Helper function to convert SPARQL JSON results to flat objects
@@ -113,7 +88,6 @@ export async function fetchData(source) {
       );
     }
 
-    const contentType = response.headers.get('Content-Type');
     let rows;
 
     // Since we are now explicitly asking for JSON, we expect JSON.
@@ -144,18 +118,12 @@ export default function SparqlFetch({
 }) {
   const [url, setUrl] = useState(initialState?.url ?? 'https://fskx-api-gateway-service.risk-ai-cloud.com/gdb-proxy-service/sparql') // Updated default URL
   const [parsedQuery, setParsedQuery] = useState(null)
+  const [selectedQuery, setSelectedQuery] = useState(initialState?.query ? new Generator().stringify(initialState.query) : sparqlExamples[0].query);
+
 
   const editorDomRef = useRef()
 
-  const initialQuery = useMemo(() => {
-    if (initialState?.query) {
-      const sparqlGenerator = new Generator()
-      return sparqlGenerator.stringify(initialState.query)
-    } else {
-      return ''
-    }
-  }, [initialState])
-
+  // Removed initialQuery memo as selectedQuery now handles the initial state and updates
   const onQueryParsed = useCallback((evt) => {
     const { query } = evt.detail
     if (query.queryType === 'SELECT') {
@@ -196,14 +164,20 @@ export default function SparqlFetch({
     render(
       html`<sparql-editor
         auto-parse
-        value=${initialQuery}
+        value=${selectedQuery}
         customPrefixes=${JSON.stringify(DEFAULT_PREFIXES)}
         @parsed=${onQueryParsed}
         @parsing-failed=${onParserFailure}
       ></sparql-editor>`,
       node
     )
-  }, [onQueryParsed, onParserFailure, initialQuery])
+  }, [onQueryParsed, onParserFailure, selectedQuery])
+
+  const handleExampleChange = (event) => {
+    const newQuery = event.target.value;
+    setSelectedQuery(newQuery);
+    // The sparql-editor should update automatically due to the `value` prop changing in its render.
+  };
 
   return (
     <>
@@ -217,8 +191,19 @@ export default function SparqlFetch({
           setUrl(e.target.value)
         }}
       />
-      <div className={classNames(S['query-input-here'])}>
+      <div className={classNames(S['query-input-here'], 'mt-3 mb-2 d-flex justify-content-between align-items-center')}>
         <span>Write your query here</span>
+        <select
+          className={classNames('form-select form-select-sm', S['example-select'])}
+          onChange={handleExampleChange}
+          value={selectedQuery} // Ensure the select shows the current query if it matches an example
+        >
+          {sparqlExamples.map((example) => (
+            <option key={example.title} value={example.query}>
+              {example.title}
+            </option>
+          ))}
+        </select>
       </div>
       <div ref={editorDomRef} />
       <div className="text-right">
