@@ -4,7 +4,7 @@ Want to contribute to RAWGraphs's development? You are more than welcome! Start 
 Then you can use Github's issues and pull requests to discuss and share your work.
 
 You will need to sign a [Contributor License Agreement (CLA)](https://www.clahub.com/agreements/densitydesign/raw) before making a submission. It will be automatically prompted in the moment you will make a "pull request" to the repository. We adopted CLA to be sure that the project will remain open source.
-For more information, write us: <hello@rawgraphs.io>.
+For more information, write us: <[email removed]>.
 
 ## The "obvius fix" RULE
 
@@ -20,7 +20,7 @@ Whenever you invoke the Obvious Fix Rule, please say so in your commit message. 
 
 ```
 commit fed5f73b831906878a32bddaee98dcc5652f1716
-Author: giovanna <giovanna@rawgraphs.io>
+Author: giovanna <[email removed]>
 Date: Mon Feb 06 09:41:00 2017 +0100
 Fix typo in README.
 Obvious fix.
@@ -28,7 +28,7 @@ Obvious fix.
 
 ## What qualifies as an obvious fix?
 
-An obvious fix is a pull request that does not contain creative work. We rely on your judgment to determine what is “obvious”; if you’re not sure, just ask by sending an email to: hello@rawgraphs.io
+An obvious fix is a pull request that does not contain creative work. We rely on your judgment to determine what is “obvious”; if you’re not sure, just ask by sending an email to: [email removed]
 As a rule of thumb, changes are obvious fixes if they do not introduce any new functionality or creative thinking. As long as the change does not affect functionality, some likely examples include the following:
 
 - Spelling/grammar fixes;

@@ -71,7 +71,7 @@ yarn build
 ## Contributing
 
 Want to contribute to RAWGraphs's development? You are more than welcome! Start by forking the repository (the "Fork" button at the top-right corner of this page) and follow the instructions above to clone it and install dependencies. Then you can use Github's issues and pull requests to discuss and share your work.
-You will need to sign a [Contributor License Agreement (CLA)](https://en.wikipedia.org/wiki/Contributor_License_Agreement) before submitting. We adopted CLA to be sure that the project will remain open source. For more information, write us: <hello@rawgraphs.io>.
+You will need to sign a [Contributor License Agreement (CLA)](https://en.wikipedia.org/wiki/Contributor_License_Agreement) before submitting. We adopted CLA to be sure that the project will remain open source. For more information, write us: <[email removed]>.
 
 ## Publications / Citing RAWGraphs
 
@@ -112,7 +112,7 @@ Bibtex:
 
 RAWGraphs is provided under the [Apache License 2.0](https://github.com/rawgraphs/rawgraphs-app/blob/master/LICENSE):
 
-    Copyright (c), 2013-2021 DensityDesign Lab, Calibro, INMAGIK <hello@rawgraphs.io>
+    Copyright (c), 2013-2021 DensityDesign Lab, Calibro, INMAGIK <[email removed]>
     
     Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
