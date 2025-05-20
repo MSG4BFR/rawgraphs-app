@@ -5,11 +5,11 @@ import { Navbar, Nav } from 'react-bootstrap'
 export default function Header({ menuItems }) {
   return (
     <Navbar bg="white" expand="lg" sticky="top" className={styles.navbar}>
-      <Navbar.Brand href="/"><b>RAW</b><span className="text-primary">Graphs</span> 2.0</Navbar.Brand>
+      <Navbar.Brand href="/">KIDA Linked Data Hub</Navbar.Brand>
       <Navbar.Toggle aria-controls="basic-navbar-nav" />
       <Navbar.Collapse id="basic-navbar-nav">
         <Nav className="ml-auto">
-          {menuItems.map((d, i) => {
+         {/* {menuItems.map((d, i) => {
             return (
               <Nav.Link key={'item' + i} href={d.href}>
                 {d.label}
@@ -33,7 +33,7 @@ export default function Header({ menuItems }) {
             className="btn btn-sm btn-primary ml-2 d-flex flex-column align-items-center justify-content-center"
           >
             Support us
-          </a>
+          </a>*/}
         </Nav>
       </Navbar.Collapse>
     </Navbar>

@@ -14,7 +14,7 @@ export default function Footer(props) {
         <Row>
           <Col xs={6} sm={{ span: 5, order: 1 }} lg={{ span: 3, order: 1 }}>
             <p className="Xsmall">
-              RAWGraphs is an open source project designed and developed by{' '}
+              This project is based on RAWGraphs{' '}
               <a
                 href="http://densitydesign.org/"
                 target="_blank"
