@@ -189,7 +189,7 @@ export default function SparqlFetch({
         value={url}
         onChange={(e) => {
           setUrl(e.target.value)
-        }}
+        }}  contenteditable="true"
       />
       <div className={classNames(S['query-input-here'], 'mt-3 mb-2 d-flex justify-content-between align-items-center')}>
         <span>Write your query here</span>
