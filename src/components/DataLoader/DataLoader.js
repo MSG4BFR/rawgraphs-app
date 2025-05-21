@@ -10,6 +10,7 @@ import {
   BsGift,
   BsSearch,
   BsUpload,
+  // BsTags, // Removed for Terminology Service
 } from 'react-icons/bs'
 import { DATA_LOADER_MODE } from '../../hooks/useDataLoader'
 import DataGrid from '../DataGrid/DataGrid'
@@ -21,6 +22,8 @@ import LoadProject from './loaders/LoadProject'
 import Paste from './loaders/Paste'
 import UploadFile from './loaders/UploadFile'
 import UrlFetch from './loaders/UrlFetch'
+import CatalogueSearch from './loaders/CatalogueSearch'
+import TerminologyService from './loaders/TerminologyService'; // Import the new Terminology Service
 import Loading from './loading'
 import WarningMessage from '../WarningMessage'
 import DataMismatchModal from './DataMismatchModal'
@@ -65,10 +68,46 @@ function DataLoader({
 
 
   const options = [
-        {
+    {
+      id: 'catalogue',
+      name: 'Data Repository',
+      message: 'Search the Repository for datasets.',
+      loader: (
+        <CatalogueSearch
+          userInput={userInput}
+          setUserInput={(rawInput, source) => setUserInput(rawInput, source)}
+          setLoadingError={setLoadingError}
+          initialState={
+            initialOptionState?.type === 'catalogue' ? initialOptionState : null
+          }
+        />
+      ),
+      // icon: BsJournals, // Icon removed as per request
+      disabled: false,
+      allowedForReplace: true,
+    },
+    {
+      id: 'terminology',
+      name: 'Terminology Service',
+      message: 'Search a terminology service for classes, properties, and individuals.',
+      loader: (
+        <TerminologyService
+          userInput={userInput}
+          setUserInput={(rawInput, source) => setUserInput(rawInput, source)}
+          setLoadingError={setLoadingError}
+          initialState={
+            initialOptionState?.type === 'terminology' ? initialOptionState : null
+          }
+        />
+      ),
+      // icon: BsTags, // Icon removed as per request
+      disabled: false,
+      allowedForReplace: true,
+    },
+    {
       id: 'sparql',
       name: 'SPARQL query',
-      message: 'Load data with a SparQL query',
+      message: '',
       loader: (
         <SparqlFetch
           userInput={userInput}
@@ -291,7 +330,7 @@ function DataLoader({
                       setOptionIndex(i)
                     }}
                   >
-                    <d.icon className="w-25" />
+                    {d.icon ? <d.icon className="w-25" /> : <div className="w-25"></div>}
                     <h4 className="m-0 d-inline-block">{d.name}</h4>
                   </div>
                 )
