@@ -1,25 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { Form, ListGroup, Spinner, Alert, Button, Collapse } from 'react-bootstrap';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Form, Spinner, Alert, Button, Collapse, Row, Col, Card } from 'react-bootstrap';
 import { fetchData } from './SparqlFetch'; // Import fetchData
 import { Parser as SparqlParser } from 'sparqljs'; // Import SparqlParser
 import { debounce } from 'lodash';
-
-// Basic styles (can be moved to a .module.scss file later)
-const styles = {
-  resultsContainer: {
-    maxHeight: '300px',
-    overflowY: 'auto',
-    marginTop: '1rem',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-  },
-  listItem: {
-    cursor: 'pointer',
-  },
-  listItemHover: {
-    backgroundColor: '#f0f0f0',
-  }
-};
+import styles from './CatalogueSearch.module.scss';
 
 function CatalogueSearch({ setUserInput, setLoadingError, initialState }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,11 +12,17 @@ function CatalogueSearch({ setUserInput, setLoadingError, initialState }) {
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  const executeSearch = useCallback(async (currentSearchTerm, currentEndpoint) => {
-    if (!currentSearchTerm.trim() || !currentEndpoint.trim()) {
+  const executeSearch = useCallback(async (currentSearchTerm, currentEndpoint, isInitialCall = false) => {
+    if (!isInitialCall && !currentSearchTerm.trim()) {
       setSearchResults([]);
       setError(null);
+      return;
+    }
+    if (!currentEndpoint.trim()) {
+      setError("SPARQL endpoint URL cannot be empty.");
+      setSearchResults([]);
       return;
     }
 
@@ -43,24 +33,28 @@ function CatalogueSearch({ setUserInput, setLoadingError, initialState }) {
     const queryString = `
       PREFIX dcat: <http://www.w3.org/ns/dcat#>
       PREFIX dct: <http://purl.org/dc/terms/>
-      PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-      SELECT ?dataset ?title ?description ?downloadURL
-      WHERE {
+      SELECT ?dataset ?title
+             (SAMPLE(?desc) AS ?description)
+             (SAMPLE(?dlURL) AS ?downloadURL)
+             (SAMPLE(?lic) AS ?license)
+             (GROUP_CONCAT(DISTINCT STR(?kw); SEPARATOR=", ") AS ?keywords)
+      WHERE {GRAPH <https://fskx-graphdb.risk-ai-cloud.com/765519e1754dfade07fdb3e80036e2c3/ontology/>{
         ?dataset a dcat:Dataset .
         ?dataset dct:title ?title .
-        OPTIONAL { ?dataset dct:description ?description . }
-        OPTIONAL { 
+        OPTIONAL { ?dataset dct:description ?desc . }
+        OPTIONAL {
           ?dataset dcat:distribution ?distribution .
-          ?distribution dcat:downloadURL ?downloadURL .
+          ?distribution dcat:downloadURL ?dlURL .
         }
+        OPTIONAL { ?dataset dcat:keywords ?kw . } # Corrected to dcat:keyword
+        OPTIONAL { ?dataset dct:license ?lic . }
 
-        FILTER (
-          regex(str(?title), "${currentSearchTerm}", "i")# ||
-         # regex(str(?description), "${currentSearchTerm}", "i")
-        )
-      }
-      LIMIT 20
+        ${currentSearchTerm.trim() ? `FILTER (regex(str(?title), "${currentSearchTerm}", "i"))` : ''}
+         }
+        }
+      GROUP BY ?dataset ?title
+      LIMIT 10 # Corrected LIMIT
     `;
 
     const parser = new SparqlParser();
@@ -88,12 +82,25 @@ function CatalogueSearch({ setUserInput, setLoadingError, initialState }) {
     }
   }, [setLoadingError]);
 
-  const debouncedSearch = useCallback(debounce(executeSearch, 500), [executeSearch]);
+  // Effect for initial data load
+  useEffect(() => {
+    if (sparqlEndpoint && !initialLoadDone) {
+      executeSearch('', sparqlEndpoint, true); // Empty search term for initial load, isInitialCall = true
+      setInitialLoadDone(true);
+    }
+  }, [sparqlEndpoint, executeSearch, initialLoadDone]);
+
+  const debouncedSearch = useCallback(debounce((term, endpoint) => executeSearch(term, endpoint, false), 500), [executeSearch]);
 
   const handleSearchTermChange = (e) => {
     const newSearchTerm = e.target.value;
     setSearchTerm(newSearchTerm);
-    debouncedSearch(newSearchTerm, sparqlEndpoint);
+    if (newSearchTerm.trim() === '') {
+      // If search term is cleared, fetch initial list
+      executeSearch('', sparqlEndpoint, true);
+    } else {
+      debouncedSearch(newSearchTerm, sparqlEndpoint);
+    }
   };
 
   const handleEndpointChange = (e) => {
@@ -195,27 +202,47 @@ function CatalogueSearch({ setUserInput, setLoadingError, initialState }) {
       )}
 
       {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
-      
+
       {!isLoading && searchResults.length > 0 && (
-        <div style={styles.resultsContainer}>
-          <ListGroup variant="flush">
-            {searchResults.map((item, index) => (
-              <ListGroup.Item
-                key={item.dataset + index} // item.dataset is already the value
-                action
-                onClick={() => handleDatasetSelect(item)} // item is now an object from fetchData
-                style={styles.listItem}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styles.listItemHover.backgroundColor}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
+        <Row className="mt-3"> {/* Removed g-3 as Col will be full width */}
+          {searchResults.map((item, index) => (
+            <Col xs={12} key={item.dataset + index} className="mb-3"> {/* Full width, mb-3 for spacing */}
+              <Card
+                className={`${styles.datasetItemCard} w-100`}
+                onClick={() => handleDatasetSelect(item)}
               >
-                <div className="fw-bold">{item.title || '[No Title Provided]'}</div>
-                <small className="text-muted d-block">{item.description || 'No description available.'}</small>
-                {item.downloadURL && <small className="text-primary d-block">Download available</small>}
-                {!item.downloadURL && <small className="text-warning d-block">No direct download URL</small>}
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-        </div>
+                <Card.Body className={styles.cardBody}>
+                  <h5 className={styles.cardTitle}>
+                    {item.title || '[No Title Provided]'}
+                  </h5>
+                  <p className={styles.cardText}>
+                    {item.description || 'No description available.'}
+                  </p>
+                  <div className={styles.metadataSection}>
+                    {item.keywords && (
+                      <div className={styles.metadataItem}>
+                        <span className={styles.metadataLabel}>Keywords: </span>
+                        <span className={styles.keywords}>{item.keywords}</span>
+                      </div>
+                    )}
+                    {item.license && (
+                      <div className={styles.metadataItem}>
+                        <span className={styles.metadataLabel}>License: </span>
+                        {typeof item.license === 'string' && item.license.startsWith('http') ?
+                          <a href={item.license} target="_blank" rel="noopener noreferrer" className={styles.licenseLink} onClick={(e) => e.stopPropagation()}>{item.license}</a> :
+                          <span>{item.license}</span>}
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.downloadStatus}>
+                    {item.downloadURL && <small className="text-primary">Download available</small>}
+                    {!item.downloadURL && <small className="text-warning">No direct download URL</small>}
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
       )}
     </div>
   );

@@ -1,0 +1,79 @@
+/* CatalogueSearch custom styles - Inspired by data.europa.eu */
+
+.datasetItemCard {
+  border: 1px solid #e0e0e0; /* Light border similar to data.europa.eu items */
+  border-radius: 0; /* More squared-off look */
+  box-shadow: none; /* Remove existing shadow if any */
+  transition: background-color 0.2s ease-in-out;
+  cursor: pointer;
+  background-color: #fff;
+}
+
+.datasetItemCard:hover {
+  background-color: #f8f9fa; /* Slight hover effect */
+}
+
+.cardBody {
+  padding: 1rem 1.25rem; /* Adjust padding */
+}
+
+.cardTitle {
+  font-size: 1.25rem; /* Prominent title */
+  font-weight: 600; /* Bolder title */
+  color: #004494; /* EU blue for titles/links */
+  margin-bottom: 0.5rem;
+  text-decoration: none; /* In case it's wrapped in an <a> for future */
+}
+
+.cardTitle:hover {
+  text-decoration: underline;
+}
+
+.cardText { /* For description */
+  font-size: 0.9rem;
+  color: #333;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.metadataSection {
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 0.75rem;
+}
+
+.metadataItem {
+  margin-bottom: 0.3rem;
+  display: block; /* Each metadata item on its own line for clarity */
+}
+
+.metadataLabel {
+  font-weight: 600;
+  color: #444;
+}
+
+.keywords { /* Can be styled as tags if desired, for now, plain text */
+  /* display: inline-block; */
+  /* background-color: #e9ecef; */
+  /* padding: 0.2em 0.5em; */
+  /* border-radius: 0.25rem; */
+  /* margin-right: 0.3em; */
+  /* margin-bottom: 0.3em; */
+  /* font-size: 0.8rem; */
+}
+
+.licenseLink {
+  color: #004494; /* EU blue */
+  text-decoration: none;
+}
+
+.licenseLink:hover {
+  text-decoration: underline;
+}
+
+.downloadStatus {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 0.5rem; /* Space above download status */
+  text-align: right; /* Align to the right like some action buttons */
+}
