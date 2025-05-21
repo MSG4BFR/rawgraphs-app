@@ -14,7 +14,7 @@ export default function Footer(props) {
         <Row>
           <Col xs={6} sm={{ span: 5, order: 1 }} lg={{ span: 3, order: 1 }}>
             <p className="Xsmall">
-              This project is based on RAWGraphs{' '}
+              This project is based on RAWGraphs and only for demonstration and testing purposes.{' '}
               <a
                 href="http://densitydesign.org/"
                 target="_blank"
@@ -39,7 +39,7 @@ export default function Footer(props) {
                 Inmagik
               </a>
               .
-              <br />© 2013-2021{' '}
+              <br />© 2013-2025{' '}
               <a href="https://raw.github.com/rawgraphs/rawgraphs-app/master/LICENSE">
                 (Apache License 2.0)
               </a>
@@ -56,19 +56,7 @@ export default function Footer(props) {
             lg={{ offset: 0 }}
             xl={{ span: 2, offset: 2 }}
           >
-            <p>
-              <BsFillEnvelopeFill /> hello at rawgraphs.io
-            </p>
-            <p>
-              <FaTwitter />{' '}
-              <a
-                href="https://twitter.com/rawgraphs"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                @rawgraphs
-              </a>
-            </p>
+           
           </Col>
           <Col
             xs={6}
@@ -90,11 +78,11 @@ export default function Footer(props) {
             <p>
               <BsBarChartFill />{' '}
               <a
-                href="https://old.rawgraphs.io"
+                href="https://www.kida-bmel.de/"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                RAWGraphs v.1
+                KIDA Linked Data Hub
               </a>
             </p>
           </Col>
