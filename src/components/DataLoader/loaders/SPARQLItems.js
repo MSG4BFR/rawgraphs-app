@@ -11,7 +11,7 @@ export const sparqlExamples = [
    },
       {
     title: "Get Data from ZooMo",
-    query: "#How many meat producing animals were sampled during the Zoonoses Monitoring in Germany (Dummy data)? \n prefix obo: <http://purl.obolibrary.org/obo/> \n prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> \n \n select ?years ?spezies ?isolat{ \n ?s a obo:HSO_0000001; \n obo:HSO_0000213 ?years; \n  obo:HSO_0000242   ?SepziesID; \n obo:HSO_0000308  ?IsolateID. \n  ?SepziesID rdfs:label ?spezies.\n ?IsolateID rdfs:label ?isolat. \n FILTER ( regex(?isolat, \"E.\",  \"i\")     # first word\n  && regex(?isolat, \"C.\",\"i\") # second word\n && regex(?isolat, \"S.\", \"i\")) #third word\n \n FILTER ( regex(?spezies, \"Mast\",  \"i\"))# first word\n }", 
+    query: "#How many meat producing animals were sampled for Campylobacter coli during the Zoonoses Monitoring in Germany?  \n PREFIX obo: <http://purl.obolibrary.org/obo/> \n PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \n \n SELECT  ?spezies ?isolat ?years (COUNT(?s) AS ?count )WHERE { \n ?s a obo:HSO_0000001; \n obo:HSO_0000213 ?years; \n  obo:HSO_0000242   ?SepziesID; \n obo:HSO_0000308  ?IsolateID. \n  ?SepziesID rdfs:label ?spezies.\n ?IsolateID rdfs:label ?isolat. \n FILTER ( regex(?isolat, \"C. coli\",  \"i\") )    # Query isolat \n FILTER ( regex(?spezies, \"Mast\",  \"i\"))# query all words with \"Mast\" \n } GROUP BY ?spezies ?isolat ?years", 
 //}",
    },
 
