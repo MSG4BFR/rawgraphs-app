@@ -63,7 +63,26 @@ function DataLoader({
   const [loadingError, setLoadingError] = useState()
   const [initialOptionState, setInitialOptionState] = useState(null)
 
+
   const options = [
+        {
+      id: 'sparql',
+      name: 'SPARQL query',
+      message: 'Load data with a SparQL query',
+      loader: (
+        <SparqlFetch
+          userInput={userInput}
+          setUserInput={(rawInput, source) => setUserInput(rawInput, source)}
+          setLoadingError={setLoadingError}
+          initialState={
+            initialOptionState?.type === 'sparql' ? initialOptionState : null
+          }
+        />
+      ),
+      icon: BsCloud,
+      disabled: false,
+      allowedForReplace: true,
+    },
     {
       id: 'paste',
       name: 'Paste your data',
@@ -106,24 +125,6 @@ function DataLoader({
         />
       ),
       icon: BsGift,
-      allowedForReplace: true,
-    },
-    {
-      id: 'sparql',
-      name: 'SPARQL query',
-      message: 'Load data with a SparQL query',
-      loader: (
-        <SparqlFetch
-          userInput={userInput}
-          setUserInput={(rawInput, source) => setUserInput(rawInput, source)}
-          setLoadingError={setLoadingError}
-          initialState={
-            initialOptionState?.type === 'sparql' ? initialOptionState : null
-          }
-        />
-      ),
-      icon: BsCloud,
-      disabled: false,
       allowedForReplace: true,
     },
     {
