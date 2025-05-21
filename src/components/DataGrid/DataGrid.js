@@ -267,17 +267,49 @@ export default function DataGrid({
         sortDirection: sortDirection,
         headerRenderer: HeaderRenderer,
         editable: true,
-        formatter: ({ row }) => {
+        formatter: ({ row, column }) => { // Added column for logging context
+          const value = row[column.key]; // Use column.key for safety, though k should be in scope
+          let displayValue;
+          let tooltipText = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+
+          // Detailed logging
+          // console.log(`DataGrid Cell - Key: ${column.key}, Raw Value:`, JSON.stringify(value), `Type: ${typeof value}`);
+
+          if (value === null || typeof value === 'undefined') {
+            // console.log(`DataGrid Cell - Key: ${column.key} - Path: Null or Undefined`);
+            displayValue = ''; 
+          } else if (typeof value === 'object' && value !== null && value.__resolved_iri__ === true && value.iri && value.label) {
+            // console.log(`DataGrid Cell - Key: ${column.key} - Path: Resolved IRI Object`);
+            displayValue = (
+              <a href={value.iri} target="_blank" rel="noopener noreferrer" title={value.iri}>
+                {value.label}
+              </a>
+            );
+            tooltipText = `${value.label} (${value.iri})`;
+          } else if (typeof value === 'string' && /^(https?:\/\/)/i.test(value)) {
+            // console.log(`DataGrid Cell - Key: ${column.key} - Path: String URL`);
+            displayValue = (
+              <a href={value} target="_blank" rel="noopener noreferrer">
+                {value}
+              </a>
+            );
+            tooltipText = value;
+          } else {
+            // console.log(`DataGrid Cell - Key: ${column.key} - Path: Other/toString`);
+            displayValue = value.toString();
+            tooltipText = value.toString();
+          }
+
           return (
             <div
-              className={classNames({ [S['has-error']]: row?._errors?.[k] })}
+              className={classNames({ [S['has-error']]: row?._errors?.[column.key] })} // Use column.key here too
+              title={tooltipText} 
             >
-              {row[k]?.toString()}
-              {/* {row[k]} */}
+              {displayValue}
             </div>
-          )
+          );
         },
-        _raw_datatype: dataTypes[k],
+        _raw_datatype: dataTypes[k], // Corrected: Use k from map scope
         _raw_coerceType: (nextType) =>
           coerceTypes({ ...dataTypes, [k]: nextType }),
         sortable: true,

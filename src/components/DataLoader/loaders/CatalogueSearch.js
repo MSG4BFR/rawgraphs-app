@@ -3,9 +3,13 @@ import { Form, Spinner, Alert, Button, Collapse, Row, Col, Card } from 'react-bo
 import { fetchData } from './SparqlFetch'; // Import fetchData
 import { Parser as SparqlParser } from 'sparqljs'; // Import SparqlParser
 import { debounce } from 'lodash';
+import { csvFormat } from 'd3-dsv'; // Import csvFormat
 import styles from './CatalogueSearch.module.scss';
+import { SparqlMarker } from '../../../hooks/useDataLoaderUtils/parser'; // Import the SparqlMarker Symbol
+import { useRef } from 'react'; // Import useRef
 
 function CatalogueSearch({ setUserInput, setLoadingError, initialState }) {
+  const isMountedRef = useRef(true); // Ref to track mounted state
   const [searchTerm, setSearchTerm] = useState('');
   const [sparqlEndpoint, setSparqlEndpoint] = useState(initialState?.endpoint || 'https://fskx-api-gateway-service.risk-ai-cloud.com/gdb-proxy-service/sparql'); // Default or from initial state
   const [showEndpointInput, setShowEndpointInput] = useState(false);
@@ -47,14 +51,13 @@ function CatalogueSearch({ setUserInput, setLoadingError, initialState }) {
           ?dataset dcat:distribution ?distribution .
           ?distribution dcat:downloadURL ?dlURL .
         }
-        OPTIONAL { ?dataset dcat:keywords ?kw . } # Corrected to dcat:keyword
+        OPTIONAL { ?dataset dcat:keyword ?kw . } # Corrected to dcat:keyword
         OPTIONAL { ?dataset dct:license ?lic . }
 
         ${currentSearchTerm.trim() ? `FILTER (regex(str(?title), "${currentSearchTerm}", "i"))` : ''}
-         }
-        }
+   } }
       GROUP BY ?dataset ?title
-      LIMIT 10 # Corrected LIMIT
+      LIMIT 5 # Corrected LIMIT to 5
     `;
 
     const parser = new SparqlParser();
@@ -82,15 +85,19 @@ function CatalogueSearch({ setUserInput, setLoadingError, initialState }) {
     }
   }, [setLoadingError]);
 
-  // Effect for initial data load
+  // Effect for initial data load & mounted state
   useEffect(() => {
+    isMountedRef.current = true;
     if (sparqlEndpoint && !initialLoadDone) {
-      executeSearch('', sparqlEndpoint, true); // Empty search term for initial load, isInitialCall = true
+      executeSearch('', sparqlEndpoint, true); 
       setInitialLoadDone(true);
     }
-  }, [sparqlEndpoint, executeSearch, initialLoadDone]);
+    return () => {
+      isMountedRef.current = false; // Set to false when component unmounts
+    };
+  }, [sparqlEndpoint, executeSearch, initialLoadDone]); // executeSearch and initialLoadDone added as dependencies
 
-  const debouncedSearch = useCallback(debounce((term, endpoint) => executeSearch(term, endpoint, false), 500), [executeSearch]);
+  const debouncedSearch = useCallback(debounce((term, endpoint) => executeSearch(term, endpoint, false), 500), [executeSearch]); // executeSearch is already a useCallback
 
   const handleSearchTermChange = (e) => {
     const newSearchTerm = e.target.value;
@@ -112,51 +119,213 @@ function CatalogueSearch({ setUserInput, setLoadingError, initialState }) {
   };
   
   const handleDatasetSelect = async (item) => {
-    // item is an object like { dataset: "uri", title: "title", description: "desc", downloadURL: "url" }
-    // from the results of fetchData
     setLoadingError(null);
     setIsLoading(true);
+    setError(null); // Clear previous errors
 
-    if (item.downloadURL) {
-      try {
-        // Use the downloadURL to fetch the actual data
-        // This mimics how UrlFetch or other loaders might work.
-        // We assume the downloadURL points to a CSV/TSV/JSON file.
-        const response = await fetch(item.downloadURL);
-        if (!response.ok) {
-          throw new Error(`Failed to download data from ${item.downloadURL}: ${response.statusText}`);
-        }
-        const rawData = await response.text();
-        // setUserInput expects the raw data string and a source object
-        setUserInput(rawData, { 
-          type: 'catalogue-url', // Indicate data came from catalogue via URL
-          url: item.downloadURL, 
-          title: item.title,
-          originalEndpoint: sparqlEndpoint,
-          originalSearchTerm: searchTerm,
-          selectedDatasetUri: item.dataset
-        });
-      } catch (e) {
-        console.error("Error fetching dataset from downloadURL:", e);
-        const errorMessage = e.message || `Failed to load data for "${item.title}".`;
+    // IMPORTANT: This is a placeholder query. Replace with the actual static query.
+    const STATIC_DEFAULT_QUERY_STRING = `
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+     SELECT ?s ?column_name ?entity_name WHERE {
+  ?s ?p ?entity_name .
+  ?p rdfs:label ?column_name.
+  #OPTIONAL {?o rdfs:label ?entity_name}
+  FILTER REGEX(STR(?s), "http://bfr-bund-graph.de/data/f32aabcfaf804182066be20bc9d1d79a", "i")
+}
+
+    `;
+
+    const parser = new SparqlParser();
+    let parsedQuery;
+
+    try {
+      parsedQuery = parser.parse(STATIC_DEFAULT_QUERY_STRING);
+    } catch (e) {
+      console.error("Error parsing static default SPARQL query:", e);
+      const errorMessage = `Error parsing the predefined SPARQL query: ${e.message}`;
+      if (isMountedRef.current) {
         setError(errorMessage);
         setLoadingError(errorMessage);
-      } finally {
         setIsLoading(false);
       }
-    } else {
-      // If no downloadURL, we can't directly load the data.
-      // For now, we'll just set an error.
-      // Alternatively, could pass the structured metadata itself if RAWGraphs can handle it.
-      const errorMessage = `Dataset "${item.title}" has no direct download URL (dcat:downloadURL) specified in the catalogue.`;
-      setError(errorMessage);
-      setLoadingError(errorMessage);
-      setIsLoading(false);
-      // Or, pass the metadata if that's a desired fallback:
-      // const dataToLoad = JSON.stringify([item], null, 2);
-      // setUserInput(dataToLoad, { type: 'catalogue-metadata', endpoint: sparqlEndpoint, query: searchTerm, selectedDataset: item.dataset });
+      return;
+    }
+
+    const source = {
+      type: 'sparql', // Will be used by fetchData
+      url: sparqlEndpoint, // Use the current catalogue's SPARQL endpoint
+      query: parsedQuery,
+    };
+
+    try {
+      // Pivot the results: group by subject, predicates become columns
+      const pivotTripleResults = (triples) => {
+        if (!triples || triples.length === 0) {
+          return [];
+        }
+        // User's query returns ?s, ?column_name, ?entity_name
+        // ?s is the subject/row identifier
+        // ?column_name is the predicate/column header
+        // ?entity_name is the object/value
+        const groupedBySubject = triples.reduce((acc, triple) => {
+          const subjectVal = triple.s; 
+          const predicateVal = triple.column_name; 
+          const objectVal = triple.entity_name;
+
+          if (!subjectVal || !predicateVal) {
+            // Skip triples missing subject or predicate for pivoting
+            console.warn('Skipping triple due to missing subject or predicate for pivoting:', triple);
+            return acc;
+          }
+
+          // Initialize row with the subject variable itself, using its original name 's'
+          // or a generic name like 'id' or the first column name from the query.
+          // For now, let's keep 's' as a column in the output, or use a fixed name like 'identifier'.
+          // The user might want the 's' column to be named something specific or omitted if it's just an IRI.
+          // Let's assume 's' should be part of the output row.
+          acc[subjectVal] = acc[subjectVal] || { s: subjectVal }; 
+          acc[subjectVal][predicateVal] = objectVal;
+          return acc;
+        }, {});
+
+        const pivoted = Object.values(groupedBySubject);
+        // Preserve the SparqlMarker (Symbol) if present on the rawResults
+        if (rawResults[SparqlMarker] === true) {
+          pivoted[SparqlMarker] = true;
+        }
+        return pivoted;
+      };
+
+      const rawResults = await fetchData(source); // fetchData is already imported
+      console.log('Raw SPARQL Results (JSON before IRI resolution):', JSON.stringify(rawResults, null, 2));
+
+      // Resolve Wikidata IRIs in the 'object' part of the raw results
+      const resolveWikidataIrisInRawResults = async (triples) => {
+        if (!triples || triples.length === 0) return triples;
+
+        const wikidataIrisToResolve = new Set();
+        // Assuming user's query SELECT ?s ?column_name ?entity_name
+        // where ?entity_name is the object to be resolved.
+        for (const triple of triples) {
+          const objectValue = triple.entity_name; 
+          if (typeof objectValue === 'string' &&
+              (objectValue.startsWith('http://www.wikidata.org/entity/Q') || 
+               objectValue.startsWith('https://www.wikidata.org/entity/Q') ||
+               objectValue.startsWith('http://www.wikidata.org/wiki/Q') ||    // Add /wiki/ variant
+               objectValue.startsWith('https://www.wikidata.org/wiki/Q'))) { // Add /wiki/ variant
+            wikidataIrisToResolve.add(objectValue);
+          }
+        }
+
+        if (wikidataIrisToResolve.size === 0) {
+          console.log("No Wikidata IRIs found in 'entity_name' field to resolve.");
+          return triples; 
+        }
+        
+        console.log("Attempting to resolve Wikidata IRIs:", [...wikidataIrisToResolve]);
+        const labelsMap = await fetchWikidataLabels([...wikidataIrisToResolve]); // Existing helper
+        console.log("Resolved Wikidata Labels Map:", labelsMap);
+
+        const resolvedTriples = triples.map(triple => {
+          const objectValue = triple.entity_name;
+          if (typeof objectValue === 'string' && labelsMap.hasOwnProperty(objectValue)) {
+            // Store as an object to keep both IRI and Label
+            return { 
+              ...triple, 
+              entity_name: { 
+                iri: objectValue, 
+                label: labelsMap[objectValue],
+                __resolved_iri__: true // Special marker for this type of object
+              } 
+            };
+          }
+          return triple;
+        });
+
+        if (triples[SparqlMarker] === true) { // Propagate marker
+          resolvedTriples[SparqlMarker] = true;
+        }
+        return resolvedTriples;
+      };
+
+      const resultsWithResolvedIris = await resolveWikidataIrisInRawResults(rawResults);
+      console.log('Results with resolved IRIs (JSON before pivoting):', JSON.stringify(resultsWithResolvedIris, null, 2));
+      
+      const pivotedResults = pivotTripleResults(resultsWithResolvedIris);
+      console.log('Pivoted Results (JSON after resolving and pivoting):', JSON.stringify(pivotedResults, null, 2));
+
+      if (pivotedResults && pivotedResults.length > 0) {
+        try {
+          const csvString = csvFormat(pivotedResults);
+          console.log('Pivoted Results (CSV):\n', csvString);
+        } catch (csvError) {
+          console.error('Error converting pivoted results to CSV:', csvError);
+        }
+      } else {
+        console.log('Pivoted Results (CSV): No data to format.');
+      }
+
+      setUserInput(pivotedResults, {
+        type: 'sparql',
+        query: parsedQuery, 
+        endpoint: sparqlEndpoint, 
+        fromCatalogueClick: true, 
+        originalItemTitle: item.title, 
+        staticQueryUsed: STATIC_DEFAULT_QUERY_STRING, 
+      });
+    } catch (e) {
+      console.error("Error during dataset selection and processing:", e);
+      const errorMessage = e.message || `Failed to execute the predefined SPARQL query on endpoint ${sparqlEndpoint}.`;
+      if (isMountedRef.current) {
+        setError(errorMessage);
+        setLoadingError(errorMessage);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
+
+// Helper function to fetch labels from Wikidata (remains largely the same)
+async function fetchWikidataLabels(iris) {
+  if (!iris || iris.length === 0) return {};
+  const ids = iris.map(iri => iri.substring(iri.lastIndexOf('/') + 1)).join('|');
+  const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids}&props=labels&languages=en&format=json&origin=*`;
+  const labels = {};
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Wikidata API error: ${response.status} ${response.statusText}`);
+      return labels;
+    }
+    const data = await response.json();
+    if (data.entities) {
+      for (const idKey in data.entities) {
+        const entity = data.entities[idKey];
+        // Check if entity and its ID exists, and it has an English label
+        if (entity && entity.id && entity.labels && entity.labels.en && entity.labels.en.value) {
+          const originalIri = iris.find(iri => iri.endsWith('/' + entity.id));
+          if (originalIri) {
+            labels[originalIri] = entity.labels.en.value;
+          }
+        } else {
+          // If no English label, try to find the original IRI and keep it, or mark as 'Label not found'
+          const originalIri = iris.find(iri => iri.endsWith('/' + (entity.id || idKey)));
+          if (originalIri && !labels[originalIri]) { // Avoid overwriting if somehow already set
+             // labels[originalIri] = originalIri; // Keep original IRI if no label
+             console.warn(`No English label found for Wikidata entity: ${originalIri} (ID: ${entity.id || idKey})`);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch or parse Wikidata labels:", error);
+  }
+  return labels;
+}
+
+// Removed fetchNcbiProteinLabels as per user request to focus on Wikidata
 
   return (
     <div>
