@@ -266,7 +266,7 @@ function App() {
         abortCustomChartLoad={abortCustomChartLoad}
       />
       <div className="app-sections">
-        <Section title={`1. Load your data`} loading={loading}>
+        <Section title={``} loading={loading}>
           <DataLoader {...dataLoader} hydrateFromProject={importProject} />
         </Section>
         {data && (
