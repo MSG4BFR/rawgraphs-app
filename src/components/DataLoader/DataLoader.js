@@ -10,6 +10,8 @@ import {
   BsGift,
   BsSearch,
   BsUpload,
+  BsLayoutTextWindowReverse, // Added icon
+  BsBook, // Added icon for Terminology Service
   // BsTags, // Removed for Terminology Service
 } from 'react-icons/bs'
 import { DATA_LOADER_MODE } from '../../hooks/useDataLoader'
@@ -82,7 +84,7 @@ function DataLoader({
           }
         />
       ),
-      // icon: BsJournals, // Icon removed as per request
+      icon: BsLayoutTextWindowReverse, // Added icon for Data Repository
       disabled: false,
       allowedForReplace: true,
     },
@@ -100,7 +102,7 @@ function DataLoader({
           }
         />
       ),
-      // icon: BsTags, // Icon removed as per request
+      icon: BsBook, // Icon added for Terminology Service
       disabled: false,
       allowedForReplace: true,
     },
